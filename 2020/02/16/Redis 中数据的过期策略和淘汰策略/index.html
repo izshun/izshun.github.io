@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>Redis 中数据的过期策略和淘汰策略 | zshun&#39;s Blog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#07fcd7">
+    
+    
+    <meta name="keywords" content="Redis">
+    <meta name="description" content="过期策略Redis 会把设置了过期时间的 key 放入一个独立的字典里，在 key 过期时并不会立刻删除它。 Redis 会通过如下两种策略，来删除过期的key:  惰性删除 客户端访问某个 key 时，Redis 会检查该 key 是否过期，若过期则删除   定期扫描  Redis 默认每秒执行 10 次过期扫描（配置hz选项），扫描策略如下：1. 从过期字典中随机选择 20 个 key； 2.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 中数据的过期策略和淘汰策略">
+<meta property="og:url" content="https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/index.html">
+<meta property="og:site_name" content="zshun&#39;s Blog">
+<meta property="og:description" content="过期策略Redis 会把设置了过期时间的 key 放入一个独立的字典里，在 key 过期时并不会立刻删除它。 Redis 会通过如下两种策略，来删除过期的key:  惰性删除 客户端访问某个 key 时，Redis 会检查该 key 是否过期，若过期则删除   定期扫描  Redis 默认每秒执行 10 次过期扫描（配置hz选项），扫描策略如下：1. 从过期字典中随机选择 20 个 key； 2.">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-02-16T13:04:51.572Z">
+<meta property="article:modified_time" content="2020-02-16T13:42:19.343Z">
+<meta property="article:author" content="zshun">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+    
+        <link rel="alternate" type="application/atom+xml" title="zshun&#39;s Blog" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/img/favicon.ico">
+    <link rel="stylesheet" href="/css/style.css?v=1.7.2">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.jpg">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">zshun</h5>
+          <a href="mailto:izshun@outlook.com" title="izshun@outlook.com" class="mail">izshun@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                Archives
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                Tags
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                Categories
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/izshun" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="http://118.24.46.78/" target="_blank" >
+                <i class="icon icon-lg icon-link"></i>
+                我的项目
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">Redis 中数据的过期策略和淘汰策略</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">Redis 中数据的过期策略和淘汰策略</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-02-16T13:04:51.572Z" itemprop="datePublished" class="page-time">
+  2020-02-16
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Redis/">Redis</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#过期策略"><span class="post-toc-number">1.</span> <span class="post-toc-text">过期策略</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#淘汰策略"><span class="post-toc-number">2.</span> <span class="post-toc-text">淘汰策略</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-Redis 中数据的过期策略和淘汰策略"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">Redis 中数据的过期策略和淘汰策略</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-02-16 21:04:51" datetime="2020-02-16T13:04:51.572Z"  itemprop="datePublished">2020-02-16</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/Redis/">Redis</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h2 id="过期策略"><a href="#过期策略" class="headerlink" title="过期策略"></a>过期策略</h2><p>Redis 会把设置了过期时间的 key 放入一个独立的字典里，在 key 过期时并不会立刻删除它。</p>
+<p>Redis 会通过如下两种策略，来删除过期的key:</p>
+<ul>
+<li>惰性删除<ul>
+<li>客户端访问某个 key 时，Redis 会检查该 key 是否过期，若过期则删除</li>
+</ul>
+</li>
+<li>定期扫描<br>  Redis 默认每秒执行 10 次过期扫描（配置hz选项），扫描策略如下：<pre><code>1. 从过期字典中随机选择 20 个 key；
+2. 删除这 20 个 key 中已过期的 key；
+3. 如果过期的 key 的比例超过 25%，则重复步骤 1；</code></pre></li>
+</ul>
+<h2 id="淘汰策略"><a href="#淘汰策略" class="headerlink" title="淘汰策略"></a>淘汰策略</h2><p>当 Redis 占用内存超出最大限制（maxmemory）时，可采用如下策略（maxmemory-policy）</p>
+<p>让 Redis 淘汰一些数据，以腾出空间继续提供读写服务：</p>
+<ul>
+<li>noeviction: 对可能导致增大内存的命令返回错误（大多数写命令，DEL除外）</li>
+<li>volatile-ttl: 在设置了过期时间的 key 中，选择剩余寿命（TTL）最短的 key，将其淘汰</li>
+<li>volatile-lru: 在设置了过期时间的 key 中，选择最少使用的 key，将其淘汰</li>
+<li>volatile-random: 在设置了过期时间的 key 中，随机选择一些 key，将其淘汰</li>
+<li>allkeys-lru: 在所有的 key 中，选择最少使用的 key，将其淘汰</li>
+<li>allkeys-random: 在所有的 key 中，随机选择一些 key，将其淘汰</li>
+</ul>
+<ol>
+<li><p>LRU 算法</p>
+<ul>
+<li>维护一个链表，用于顺序存储被访问过的key。</li>
+<li>在访问数据时，最新访问过的 key 将被移动到表头</li>
+<li>即最近访问的 key 在表头，最少访问的 key 在表尾</li>
+</ul>
+</li>
+<li><p>近似 LRU 算法（Redis）</p>
+<ul>
+<li>给每个 key 维护一个时间戳，淘汰时随机采样 5 个key，从中淘汰掉最旧的key。如果还是超出内存限制，则继续随机采样淘汰</li>
+<li>优点：比 LRU 算法节约内存，却可以取得非常近似的效果</li>
+</ul>
+</li>
+</ol>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2020-02-16T13:42:19.343Z" itemprop="dateUpdated">2020-02-16 21:42:19</time>
+</span><br>
+
+
+        
+    </div>
+    
+    <footer>
+        <a href="https://izshun.github.io">
+            <img src="/img/avatar.jpg" alt="zshun">
+            zshun
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Redis/" rel="tag">Redis</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/&title=《Redis 中数据的过期策略和淘汰策略》 — zshun's Blog&pic=https://izshun.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/&title=《Redis 中数据的过期策略和淘汰策略》 — zshun's Blog&source=" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Redis 中数据的过期策略和淘汰策略》 — zshun's Blog&url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/&via=https://izshun.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">采用 K-Means 聚类算法分析 GPS 轨迹</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+<section class="comments" id="comments">
+    <div id="disqus_thread"></div>
+    <script>
+    var disqus_shortname = 'true';
+    lazyScripts.push('//' + disqus_shortname + '.disqus.com/embed.js')
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        站点总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        站点总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>zshun &copy; 2017 - 2020</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/&title=《Redis 中数据的过期策略和淘汰策略》 — zshun's Blog&pic=https://izshun.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/&title=《Redis 中数据的过期策略和淘汰策略》 — zshun's Blog&source=" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《Redis 中数据的过期策略和淘汰策略》 — zshun's Blog&url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/&via=https://izshun.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=https://izshun.github.io/2020/02/16/Redis%20%E4%B8%AD%E6%95%B0%E6%8D%AE%E7%9A%84%E8%BF%87%E6%9C%9F%E7%AD%96%E7%95%A5%E5%92%8C%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAT4AAAE+CAAAAAAxUyPsAAAFQElEQVR42u3d0YrbSBQE0Pn/n96FkIddEo+r6srLEo6eTCxL6tMB3a7bMF9f8fHXj+PV538e7XW2q/36bf6ry/OPBz58+PDhw/fioq8u9+pfkkdPzkwG9uruyXW2X33/DPjw4cOHD9+F76lhb1PSPsP3KPn0JN++scKHDx8+fPg+xvf9+ZdffU/fTsl9XPjw4cOHD9//hy8ZzBa1b0F/fve8eMKHDx8+fPg+zdeG4+1CvV2u52HE1oy/F0n48OHDhw/fxnffoPbnfX74wIcPHz58+OKFd/tS35blbTGxNe+fcvh5ZXz48OHDh2/ROAXWz8blT5VW7Tn5b6PEBR8+fPjw4Que894wzguOPHbPY4u2MZ9P7Rgf4MOHDx8+fDHB5fNlm1rCvcUWT038b8ICfPjw4cOHL+ZLXs9bcJAEBMkwtvZ2G2pc4gZ8+PDhw4cvd2gvtD1KUqC0BFsZ1JYyb8opfPjw4cOHr+Tb2s/tsNvb36fwHtaPHQ98+PDhw4cvCAvacqQNBdpNaTnEFtbnMUcU0+PDhw8fPnwTX97qvi+885IoD+ifpYkCC3z48OHDh2/iayHy2+cQbfRwaefnxdCb8eLDhw8fPnwlXxuIb4v2bZvaFhY81QbIcfHhw4cPH76cb4vL85tdhtrybaFAXpScIgN8+PDhw4cvbldfCpE8EG+vcwnu87b6m3Pw4cOHDx++M19eXrQ5RNuSzwe5NRi25v1veh348OHDhw9fzJd8vTW525bzaQDlOS3xm3Pw4cOHDx++Q5u8Dbvbz/ni/FKabBFGHkAU+wvw4cOHDx++F23yS+HSNsjHcLxc5LdXriceHz58+PDhW2qG8Y8B17eJt7jdn6EtiS53xIcPHz58+PI7thvU8nIkLwu2aWgbAG3jIXpafPjw4cOHb+Jro4Gk+Gi3r122i12ijVObAR8+fPjw4Zv47hFAW/pcfvXUsz3QyMeHDx8+fPiue8Dq2Lp9oGRBnj9DW2xtBA+Q4cOHDx8+fOWaNwnZ89tvpUnOkZdK7RjHyAAfPnz48OErI/V2cb61zLeIIS+YLk2IuteBDx8+fPjwfcuXD6+9zSc2mW2s90LqX5/x4cOHDx++ku8SDbSv/+R4qj3QQrfb7PDhw4cPH747X97YbtvJl9i9vfLGdCmw8OHDhw8fvpYvXza3j/LUdrQ8gt/aA23c8JUPGB8+fPjw4QueP2+f59FAEk+0W8ouG92SZ9gKOHz48OHDhy/he/Zlnze8L9PzVFi/Bff48OHDhw9fy3fZcNa+4Ntv75veLlMV/b/Dhw8fPnz4Jr6t2ZwssPNCpC07Lo3weysCHz58+PDhO5z5AGgbFrSTkS/78812ycTXDvjw4cOHD1/gsJUROVzb0t7KkXuzP4/+8eHDhw8fvo1v2/61BetJY6BtD9yDgPzuda8DHz58+PDhC8KCtnmclxpbfJAHB58IJvLSDR8+fPjw4Uv42sJli7zvgxw7D/GUtKPDhw8fPnz4LnyXZX8btbfcyXXahkFUxyWBPj58+PDhw3fmy1/heXHQ9u3b+7axwuW+bwoXfPjw4cOHr9tpNm7b2qC34CApaLYy5d6Gx4cPHz58+BK+Maoug/jLlCRwbax/KYOK6g8fPnz48OF7wXcvID7xNt9a7EnxsTUJ8OHDhw8fvv+SL3+db8VH3kq/nLPF9y+t8OHDhw8fvg/ztVH4RnNBzwefX+GxwgUfPnz48OErl/dbE/oUiB+KlXYii5IFHz58+PDhm/guLe12eO1aeysyLr/9ROsCHz58+PDh+3H8DcdphvZktEijAAAAAElFTkSuQmCC" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="/js/main.min.js?v=1.7.2"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="/js/search.min.js?v=1.7.2" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
