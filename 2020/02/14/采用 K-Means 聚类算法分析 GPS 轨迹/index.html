@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>采用 K-Means 聚类算法分析 GPS 轨迹 | zshun&#39;s Blog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#07fcd7">
+    
+    
+    <meta name="keywords" content="聚类">
+    <meta name="description" content="数据集来源Geolife 加载数据12345678910111213141516import numpy as npimport matplotlib.pyplot as pltimport pandas as pdimport osfrom  matplotlib.colors import  rgb2hexfrom shapely.geometry import MultiPointfrom">
+<meta property="og:type" content="article">
+<meta property="og:title" content="采用 K-Means 聚类算法分析 GPS 轨迹">
+<meta property="og:url" content="https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/index.html">
+<meta property="og:site_name" content="zshun&#39;s Blog">
+<meta property="og:description" content="数据集来源Geolife 加载数据12345678910111213141516import numpy as npimport matplotlib.pyplot as pltimport pandas as pdimport osfrom  matplotlib.colors import  rgb2hexfrom shapely.geometry import MultiPointfrom">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://s2.ax1x.com/2020/02/16/39eBMn.png">
+<meta property="og:image" content="https://s2.ax1x.com/2020/02/16/39mlYF.png">
+<meta property="og:image" content="https://s2.ax1x.com/2020/02/16/39n7CD.png">
+<meta property="article:published_time" content="2020-02-14T02:20:21.451Z">
+<meta property="article:modified_time" content="2020-02-16T12:56:44.080Z">
+<meta property="article:author" content="zshun">
+<meta property="article:tag" content="聚类">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://s2.ax1x.com/2020/02/16/39eBMn.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="zshun&#39;s Blog" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/img/favicon.ico">
+    <link rel="stylesheet" href="/css/style.css?v=1.7.2">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.jpg">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">zshun</h5>
+          <a href="mailto:izshun@outlook.com" title="izshun@outlook.com" class="mail">izshun@outlook.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                Archives
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                Tags
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                Categories
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/izshun" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="http://118.24.46.78/" target="_blank" >
+                <i class="icon icon-lg icon-link"></i>
+                我的项目
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">采用 K-Means 聚类算法分析 GPS 轨迹</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">采用 K-Means 聚类算法分析 GPS 轨迹</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2020-02-14T02:20:21.451Z" itemprop="datePublished" class="page-time">
+  2020-02-14
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">机器学习</a></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#加载数据"><span class="post-toc-number">1.</span> <span class="post-toc-text">加载数据</span></a></li></ol></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#K-Means"><span class="post-toc-number"></span> <span class="post-toc-text">K-Means</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#获取-K-Means-聚类结果"><span class="post-toc-number">1.</span> <span class="post-toc-text">获取 K-Means 聚类结果</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#获取每个群集每个中心点"><span class="post-toc-number">2.</span> <span class="post-toc-text">获取每个群集每个中心点</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#描绘中心点"><span class="post-toc-number">3.</span> <span class="post-toc-text">描绘中心点</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-采用 K-Means 聚类算法分析 GPS 轨迹"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">采用 K-Means 聚类算法分析 GPS 轨迹</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2020-02-14 10:20:21" datetime="2020-02-14T02:20:21.451Z"  itemprop="datePublished">2020-02-14</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">机器学习</a></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>数据集来源<a href="https://www.microsoft.com/en-us/download/details.aspx?id=52367" target="_blank" rel="noopener">Geolife</a></p>
+<h3 id="加载数据"><a href="#加载数据" class="headerlink" title="加载数据"></a>加载数据</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">from</span>  matplotlib.colors <span class="keyword">import</span>  rgb2hex</span><br><span class="line"><span class="keyword">from</span> shapely.geometry <span class="keyword">import</span> MultiPoint</span><br><span class="line"><span class="keyword">from</span> geopy.distance <span class="keyword">import</span> great_circle</span><br><span class="line"><span class="keyword">from</span> sklearn.cluster <span class="keyword">import</span> KMeans</span><br><span class="line"><span class="keyword">from</span> sklearn.cluster <span class="keyword">import</span> DBSCAN</span><br><span class="line">userdata = <span class="string">'d:/Lab-work/Geolife Trajectories 1.3/Data/001/Trajectory/'</span></span><br><span class="line">filelist = os.listdir(userdata)</span><br><span class="line">names = [<span class="string">'lat'</span>,<span class="string">'lng'</span>,<span class="string">'zero'</span>,<span class="string">'alt'</span>,<span class="string">'days'</span>,<span class="string">'date'</span>,<span class="string">'time'</span>]</span><br><span class="line">df_list = [pd.read_csv(userdata + f,header=<span class="number">6</span>,names=names,index_col=<span class="literal">False</span>) <span class="keyword">for</span> f <span class="keyword">in</span> filelist]  </span><br><span class="line">df = pd.concat(df_list, ignore_index=<span class="literal">True</span>)</span><br><span class="line">print(df.head(<span class="number">10</span>))</span><br><span class="line">plt.plot(df.lat, df.lng)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">         lat         lng  zero  alt          days        <span class="built_in">date</span>      <span class="built_in">time</span></span><br><span class="line"><span class="number">0</span>  <span class="number">39</span>.<span class="number">984198</span>  <span class="number">116</span>.<span class="number">319322</span>     <span class="number">0</span>  <span class="number">492</span>  <span class="number">39744</span>.<span class="number">245208</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">06</span></span><br><span class="line"><span class="number">1</span>  <span class="number">39</span>.<span class="number">984224</span>  <span class="number">116</span>.<span class="number">319402</span>     <span class="number">0</span>  <span class="number">492</span>  <span class="number">39744</span>.<span class="number">245266</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">11</span></span><br><span class="line"><span class="number">2</span>  <span class="number">39</span>.<span class="number">984211</span>  <span class="number">116</span>.<span class="number">319389</span>     <span class="number">0</span>  <span class="number">492</span>  <span class="number">39744</span>.<span class="number">245324</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">16</span></span><br><span class="line"><span class="number">3</span>  <span class="number">39</span>.<span class="number">984217</span>  <span class="number">116</span>.<span class="number">319422</span>     <span class="number">0</span>  <span class="number">491</span>  <span class="number">39744</span>.<span class="number">245382</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">21</span></span><br><span class="line"><span class="number">4</span>  <span class="number">39</span>.<span class="number">984710</span>  <span class="number">116</span>.<span class="number">319865</span>     <span class="number">0</span>  <span class="number">320</span>  <span class="number">39744</span>.<span class="number">245405</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">23</span></span><br><span class="line"><span class="number">5</span>  <span class="number">39</span>.<span class="number">984674</span>  <span class="number">116</span>.<span class="number">319810</span>     <span class="number">0</span>  <span class="number">325</span>  <span class="number">39744</span>.<span class="number">245463</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">28</span></span><br><span class="line"><span class="number">6</span>  <span class="number">39</span>.<span class="number">984623</span>  <span class="number">116</span>.<span class="number">319773</span>     <span class="number">0</span>  <span class="number">326</span>  <span class="number">39744</span>.<span class="number">245521</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">33</span></span><br><span class="line"><span class="number">7</span>  <span class="number">39</span>.<span class="number">984606</span>  <span class="number">116</span>.<span class="number">319732</span>     <span class="number">0</span>  <span class="number">327</span>  <span class="number">39744</span>.<span class="number">245579</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">38</span></span><br><span class="line"><span class="number">8</span>  <span class="number">39</span>.<span class="number">984555</span>  <span class="number">116</span>.<span class="number">319728</span>     <span class="number">0</span>  <span class="number">324</span>  <span class="number">39744</span>.<span class="number">245637</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">43</span></span><br><span class="line"><span class="number">9</span>  <span class="number">39</span>.<span class="number">984579</span>  <span class="number">116</span>.<span class="number">319769</span>     <span class="number">0</span>  <span class="number">309</span>  <span class="number">39744</span>.<span class="number">245694</span>  <span class="number">2008</span>-<span class="number">10</span>-<span class="number">23</span>  <span class="number">05</span>:<span class="number">53</span>:<span class="number">48</span></span><br><span class="line">[&lt;matplotlib.lines.Line2D <span class="built_in">at</span> <span class="number">0</span>x17efc43eac8&gt;]</span><br></pre></td></tr></table></figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://s2.ax1x.com/2020/02/16/39eBMn.png" alt="39eBMn.png" title="">
+                </div>
+                <div class="image-caption">39eBMn.png</div>
+            </figure>
+
+<h2 id="K-Means"><a href="#K-Means" class="headerlink" title="K-Means"></a>K-Means</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">coords = df[[<span class="string">'lat'</span>,<span class="string">'lng'</span>]].values</span><br><span class="line">n_clusters = <span class="number">100</span></span><br><span class="line">cls = KMeans(n_clusters).fit(coords)</span><br><span class="line">colors = tuple([(np.random.random(),np.random.random(), np.random.random()) <span class="keyword">for</span> i <span class="keyword">in</span> range(n_clusters)])</span><br><span class="line">colors = [rgb2hex(x) <span class="keyword">for</span> x <span class="keyword">in</span> colors]</span><br><span class="line"><span class="keyword">for</span> i, color <span class="keyword">in</span> enumerate(colors):</span><br><span class="line">  members = cls.labels_ == i</span><br><span class="line">  plt.scatter(coords[members, <span class="number">0</span>], coords[members, <span class="number">1</span>], s=<span class="number">60</span>, c=color, alpha=<span class="number">0.5</span>)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://s2.ax1x.com/2020/02/16/39mlYF.png" alt="39mlYF.png" title="">
+                </div>
+                <div class="image-caption">39mlYF.png</div>
+            </figure>
+
+<h3 id="获取-K-Means-聚类结果"><a href="#获取-K-Means-聚类结果" class="headerlink" title="获取 K-Means 聚类结果"></a>获取 K-Means 聚类结果</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cluster_labels = cls.labels_</span><br><span class="line">num_clusters = len(set(cluster_labels) - set([<span class="number">-1</span>]))</span><br><span class="line">print(<span class="string">'Clustered '</span> + str(len(df_min)) + <span class="string">' points to '</span> + str(num_clusters) + <span class="string">' clusters'</span>)</span><br><span class="line">clusters = pd.Series([coords[cluster_labels == n] <span class="keyword">for</span> n <span class="keyword">in</span> range(num_clusters)])</span><br><span class="line">print(clusters)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Clustered <span class="number">9045</span> points to <span class="number">100</span> clusters</span><br><span class="line"><span class="number">0</span>     [[<span class="number">40</span>.<span class="number">014459</span>, <span class="number">116</span>.<span class="number">305603</span>], [<span class="number">40</span>.<span class="number">014363</span>, <span class="number">116</span>.<span class="number">3056</span>...</span><br><span class="line"><span class="number">1</span>     [[<span class="number">39</span>.<span class="number">975246000000006</span>, <span class="number">116</span>.<span class="number">358976</span>], [<span class="number">39</span>.<span class="number">975244</span>,...</span><br><span class="line"><span class="number">2</span>     [[<span class="number">40</span>.<span class="number">001312</span>, <span class="number">116</span>.<span class="number">193358</span>], [<span class="number">40</span>.<span class="number">001351</span>, <span class="number">116</span>.<span class="number">1932</span>...</span><br><span class="line"><span class="number">3</span>     [[<span class="number">39</span>.<span class="number">984559000000004</span>, <span class="number">116</span>.<span class="number">326696</span>], [<span class="number">39</span>.<span class="number">984669</span>,...</span><br><span class="line"><span class="number">4</span>     [[<span class="number">39</span>.<span class="number">964969</span>, <span class="number">116</span>.<span class="number">434923</span>], [<span class="number">39</span>.<span class="number">964886</span>, <span class="number">116</span>.<span class="number">4350</span>...</span><br><span class="line">                            ...                        </span><br><span class="line"><span class="number">95</span>    [[<span class="number">40</span>.<span class="number">004549</span>, <span class="number">116</span>.<span class="number">260581</span>], [<span class="number">40</span>.<span class="number">004515999999995</span>,...</span><br><span class="line"><span class="number">96</span>    [[<span class="number">39</span>.<span class="number">97964</span>, <span class="number">116</span>.<span class="number">323856</span>], [<span class="number">39</span>.<span class="number">979701</span>, <span class="number">116</span>.<span class="number">32396</span>...</span><br><span class="line"><span class="number">97</span>    [[<span class="number">40</span>.<span class="number">0009</span>, <span class="number">116</span>.<span class="number">23948500000002</span>], [<span class="number">40</span>.<span class="number">000831</span>, <span class="number">11</span>...</span><br><span class="line"><span class="number">98</span>    [[<span class="number">39</span>.<span class="number">962336</span>, <span class="number">116</span>.<span class="number">32817800000001</span>], [<span class="number">39</span>.<span class="number">96223300</span>...</span><br><span class="line"><span class="number">99</span>    [[<span class="number">39</span>.<span class="number">9663</span>, <span class="number">116</span>.<span class="number">353677</span>], [<span class="number">39</span>.<span class="number">966291999999996</span>, <span class="number">1</span>...</span><br><span class="line"><span class="function">Length: 100, <span class="title">dtype</span>: <span class="title">object</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="获取每个群集每个中心点"><a href="#获取每个群集每个中心点" class="headerlink" title="获取每个群集每个中心点"></a>获取每个群集每个中心点</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_centermost_point</span><span class="params">(cluster)</span>:</span></span><br><span class="line">    centroid = (MultiPoint(cluster).centroid.x, MultiPoint(cluster).centroid.y)</span><br><span class="line">    centermost_point = min(cluster, key=<span class="keyword">lambda</span> point: great_circle(point, centroid).m)</span><br><span class="line">    <span class="keyword">return</span> tuple(centermost_point)</span><br><span class="line">centermost_points = clusters.map(get_centermost_point)</span><br><span class="line">lats, lons = zip(*centermost_points)</span><br><span class="line">rep_points = pd.DataFrame(&#123;<span class="string">'lon'</span>:lons, <span class="string">'lat'</span>:lats&#125;)</span><br><span class="line">print(rep_points)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">           lon        lat</span><br><span class="line"><span class="number">0</span>   <span class="number">116</span>.<span class="number">306558</span>  <span class="number">40</span>.<span class="number">013751</span></span><br><span class="line"><span class="number">1</span>   <span class="number">116</span>.<span class="number">353295</span>  <span class="number">39</span>.<span class="number">975357</span></span><br><span class="line"><span class="number">2</span>   <span class="number">116</span>.<span class="number">190167</span>  <span class="number">40</span>.<span class="number">004290</span></span><br><span class="line"><span class="number">3</span>   <span class="number">116</span>.<span class="number">326944</span>  <span class="number">39</span>.<span class="number">986492</span></span><br><span class="line"><span class="number">4</span>   <span class="number">116</span>.<span class="number">438241</span>  <span class="number">39</span>.<span class="number">961273</span></span><br><span class="line">..         ...        ...</span><br><span class="line"><span class="number">95</span>  <span class="number">116</span>.<span class="number">256309</span>  <span class="number">40</span>.<span class="number">004774</span></span><br><span class="line"><span class="number">96</span>  <span class="number">116</span>.<span class="number">326462</span>  <span class="number">39</span>.<span class="number">978752</span></span><br><span class="line"><span class="number">97</span>  <span class="number">116</span>.<span class="number">232672</span>  <span class="number">39</span>.<span class="number">998630</span></span><br><span class="line"><span class="number">98</span>  <span class="number">116</span>.<span class="number">328847</span>  <span class="number">39</span>.<span class="number">958271</span></span><br><span class="line"><span class="number">99</span>  <span class="number">116</span>.<span class="number">358655</span>  <span class="number">39</span>.<span class="number">966451</span></span><br><span class="line"></span><br><span class="line">[<span class="number">100</span> rows x <span class="number">2</span> columns]</span><br></pre></td></tr></table></figure>
+
+<h3 id="描绘中心点"><a href="#描绘中心点" class="headerlink" title="描绘中心点"></a>描绘中心点</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">fig, ax = plt.subplots(figsize=[<span class="number">10</span>, <span class="number">6</span>])</span><br><span class="line">rs_scatter = ax.scatter(rep_points[<span class="string">'lon'</span>][<span class="number">0</span>], rep_points[<span class="string">'lat'</span>][<span class="number">0</span>], c=<span class="string">'#99cc99'</span>, edgecolor=<span class="string">'None'</span>, alpha=<span class="number">0.7</span>, s=<span class="number">450</span>)</span><br><span class="line">ax.scatter(rep_points[<span class="string">'lon'</span>][<span class="number">1</span>], rep_points[<span class="string">'lat'</span>][<span class="number">1</span>], c=<span class="string">'#99cc99'</span>, edgecolor=<span class="string">'None'</span>, alpha=<span class="number">0.7</span>, s=<span class="number">250</span>)</span><br><span class="line">ax.scatter(rep_points[<span class="string">'lon'</span>][<span class="number">2</span>], rep_points[<span class="string">'lat'</span>][<span class="number">2</span>], c=<span class="string">'#99cc99'</span>, edgecolor=<span class="string">'None'</span>, alpha=<span class="number">0.7</span>, s=<span class="number">250</span>)</span><br><span class="line">ax.scatter(rep_points[<span class="string">'lon'</span>][<span class="number">3</span>], rep_points[<span class="string">'lat'</span>][<span class="number">3</span>], c=<span class="string">'#99cc99'</span>, edgecolor=<span class="string">'None'</span>, alpha=<span class="number">0.7</span>, s=<span class="number">150</span>)</span><br><span class="line">df_scatter = ax.scatter(df_min[<span class="string">'lng'</span>], df_min[<span class="string">'lat'</span>], c=<span class="string">'k'</span>, alpha=<span class="number">0.9</span>, s=<span class="number">3</span>)</span><br><span class="line">ax.set_title(<span class="string">'Full GPS trace vs. DBSCAN clusters'</span>)</span><br><span class="line">ax.set_xlabel(<span class="string">'Longitude'</span>)</span><br><span class="line">ax.set_ylabel(<span class="string">'Latitude'</span>)</span><br><span class="line">ax.legend([df_scatter, rs_scatter], [<span class="string">'GPS points'</span>, <span class="string">'Cluster centers'</span>], loc=<span class="string">'upper right'</span>)</span><br><span class="line">labels = [<span class="string">'cluster&#123;0&#125;'</span>.format(i) <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>, num_clusters+<span class="number">1</span>)]</span><br><span class="line"><span class="keyword">for</span> label, x, y <span class="keyword">in</span> zip(labels, rep_points[<span class="string">'lon'</span>], rep_points[<span class="string">'lat'</span>]):</span><br><span class="line">    plt.annotate(                                                </span><br><span class="line">        label,</span><br><span class="line">        xy = (x, y), xytext = (<span class="number">-25</span>, <span class="number">-30</span>),</span><br><span class="line">        textcoords = <span class="string">'offset points'</span>, ha = <span class="string">'right'</span>, va = <span class="string">'bottom'</span>,</span><br><span class="line">        bbox = dict(boxstyle = <span class="string">'round,pad=0.5'</span>, fc = <span class="string">'white'</span>, alpha = <span class="number">0.5</span>),</span><br><span class="line">        arrowprops = dict(arrowstyle = <span class="string">'-&gt;'</span>, connectionstyle = <span class="string">'arc3,rad=0'</span>))</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://s2.ax1x.com/2020/02/16/39n7CD.png" alt="39n7CD.png" title="">
+                </div>
+                <div class="image-caption">39n7CD.png</div>
+            </figure>
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2020-02-16T12:56:44.080Z" itemprop="dateUpdated">2020-02-16 20:56:44</time>
+</span><br>
+
+
+        
+    </div>
+    
+    <footer>
+        <a href="https://izshun.github.io">
+            <img src="/img/avatar.jpg" alt="zshun">
+            zshun
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%81%9A%E7%B1%BB/" rel="tag">聚类</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/&title=《采用 K-Means 聚类算法分析 GPS 轨迹》 — zshun's Blog&pic=https://izshun.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/&title=《采用 K-Means 聚类算法分析 GPS 轨迹》 — zshun's Blog&source=" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《采用 K-Means 聚类算法分析 GPS 轨迹》 — zshun's Blog&url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/&via=https://izshun.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+
+
+    
+
+
+<section class="comments" id="comments">
+    <div id="disqus_thread"></div>
+    <script>
+    var disqus_shortname = 'true';
+    lazyScripts.push('//' + disqus_shortname + '.disqus.com/embed.js')
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        站点总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        站点总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>zshun &copy; 2017 - 2020</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/&title=《采用 K-Means 聚类算法分析 GPS 轨迹》 — zshun's Blog&pic=https://izshun.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/&title=《采用 K-Means 聚类算法分析 GPS 轨迹》 — zshun's Blog&source=" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《采用 K-Means 聚类算法分析 GPS 轨迹》 — zshun's Blog&url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/&via=https://izshun.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=https://izshun.github.io/2020/02/14/%E9%87%87%E7%94%A8%20K-Means%20%E8%81%9A%E7%B1%BB%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%20GPS%20%E8%BD%A8%E8%BF%B9/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASYAAAEmCAAAAADqr2IGAAAEf0lEQVR42u3aS24jORAFwL7/pT3bafTIfi+Taog1USvBklhilAHm79ev+Pp6cf357qtv/fsvr163n//+dfIbDl+YMGHChOkjmb6+vfIttWu++lb7m9t1vt/Ly5UxYcKECdPlTO1y+8O4fSTJQ0o2nAQHmDBhwoQJU3Ljs+FFHhbkKTomTJgwYcKUHPazUuymJp2vkKf0mDBhwoTp2UyzhmUeRrSbaRul+Tpvr4VjwoQJE6YPY8oP4Oe9fst8EyZMmDBh+himr9HVDsecbW0md2mDhh/2iwkTJkyYrmU6VZbNk8b2YJ4l28njqZudmDBhwoTpQqZ28+0Pmo3atMf2X62CY8KECROmq5jyNDJJL9vi6ankuQXK38WECRMmTLczJYloIV12AzchwibIyB/5b6kvJkyYMGG6likvd+aUm2Q4CTJOPaqoqI0JEyZMmB7HtBmFSb41G9lp4WZjQC9HdjBhwoQJ04VMyeaHi462sd/krDlaxxSYMGHChOlypnzR2S3bLe3bmXnB+uXnMWHChAnThUztEvtw4VT5uA07Wrii64sJEyZMmD6eaZaC5kXYzdHeBiWz0nNR3sWECRMmTI9jarcxS3TzMaD89T50wIQJEyZMtzMNvxAfqKeCgzYl3peMT7hiwoQJE6ZPYcqP6n3ZNFmhDQ7a1mn+L4IJEyZMmJ7BNBt8yUvDs2bn+65V3IQJEyZMmK5iqqOGcmSnLbPmCfas7TocAMKECRMmTJcz5aMt+Wc2JdccYj9IFL2LCRMmTJiuZWo58vbnnv5UkXe2l5cJMCZMmDBhupapLf5u2pxt2fdU4XgVlGDChAkTpguZ9mXQlnI/drN5eMeKvJgwYcKE6VqmvIT6jrQ2aUa2xAfK0JgwYcKE6VqmfBwnP5LzY3vTOm1DjfbxDKeWMGHChAnThzG1G561A2c/8Wzpuf1VmDBhwoTpGUxtSpk0FPODf7b59shvC9CYMGHChOlJTGcP1M1ITVuEzVdIUuUfknZMmDBhwnQt0yZ0aBeajY1uwppNin7gwoQJEyZMH8OUH+GzFuOm6ZiDfpVX3oLFhAkTJkz3Ms2ihtlQTltK3hBv6rT/8RlMmDBhwnQt06y8e3bzm7u0QzyrIi8mTJgwYbqQKU9i8yLsJgXNK6ubRLou9WLChAkTpocy5YM47VBpvua+mHsAGhMmTJgwPY5p3258X7MzOdTbI/+H34kJEyZMmB7BlBdP21u2f8nDi7yw2yK+LPJiwoQJE6armGZA7WdmxeI2gMhDmf1qmDBhwoTpFqZNqXTWUGxHcPIkNk+/63AHEyZMmDBdyzQ7dM8GEDPE2fhOfq8DsQkmTJgwYfoYpjatze3zxmFb5J0NGCXBx8t3MWHChAnT5Uxt4prA5QFBCz1Lv2dBDyZMmDBh+v8wzcKFUwNAs4c3K/KuAgJMmDBhwnQtU5Iq58lq8kjyO54dEsKECRMmTM9jyo/8fLwmaWHm4cW+EbtqrGLChAkTpmuZ8pu16fFmDCjfQDuIkzy21TPBhAkTJkyfwvQP+cYv4NGVksUAAAAASUVORK5CYII=" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="/js/main.min.js?v=1.7.2"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="/js/search.min.js?v=1.7.2" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
