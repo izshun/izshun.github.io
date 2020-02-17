@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="https://izshun.github.io/"/>
-  <updated>2020-02-16T13:58:52.824Z</updated>
+  <updated>2020-02-17T15:33:41.240Z</updated>
   <id>https://izshun.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>DeltaPub 社区项目</title>
+    <link href="https://izshun.github.io/2020/02/17/%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D/"/>
+    <id>https://izshun.github.io/2020/02/17/%E9%A1%B9%E7%9B%AE%E4%BB%8B%E7%BB%8D/</id>
+    <published>2020-02-17T15:31:57.438Z</published>
+    <updated>2020-02-17T15:33:41.240Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="DeltaPub-社区项目"><a href="#DeltaPub-社区项目" class="headerlink" title="DeltaPub 社区项目"></a>DeltaPub 社区项目</h1><h3 id="本文主要关注用哪些技术解决了哪些问题，整理思路"><a href="#本文主要关注用哪些技术解决了哪些问题，整理思路" class="headerlink" title="本文主要关注用哪些技术解决了哪些问题，整理思路"></a>本文主要关注用哪些技术解决了哪些问题，整理思路</h3><h3 id="系统架构图"><a href="#系统架构图" class="headerlink" title="系统架构图"></a>系统架构图</h3><figure class="image-bubble">                <div class="img-lightbox">                    <div class="overlay"></div>                    <img src="https://s2.ax1x.com/2020/02/17/3iUkxs.png" alt="3iUkxs.png" title="">                </div>                <div class="image-caption">3iUkxs.png</div>            </figure><p>整个项目构建于 Spring Boot 之上，Spring MVC 处理请求，MyBatis 访问数据库，Spring Security 管理用户的权限</p><hr><h4 id="Spring-MVC-拦截器使用场景"><a href="#Spring-MVC-拦截器使用场景" class="headerlink" title="Spring MVC 拦截器使用场景"></a>Spring MVC 拦截器使用场景</h4><p>拦截用户请求，在调用具体方法之前从cookie中获取凭证，构建用户认证的结果，存入存入SecurityContext，以便于Security进行授权，并存入 ThreadLocal，请求完成后对ThreadLocal 和 SecurityContext 中的对象进行清理。</p><blockquote><ul><li>在请求开始时查询登录用户</li><li>在本次请求中持有用户数据</li><li>在模板视图上显示用户数据</li><li>在请求结束时清理用户数据</li></ul></blockquote><p>拦截用户请求，在调用具体方法之前获取用户 IP 和 id 实现数据统计，如统计 UV 与 DAU。</p><hr><h4 id="Redis-使用场景"><a href="#Redis-使用场景" class="headerlink" title="Redis 使用场景"></a>Redis 使用场景</h4><p>二级缓存：Redis 缓存帖子列表数据，当本地缓存查不到时就查询 Redis。</p><p>对性能要求高模块，需要高频访问的模块：</p><ul><li>关注功能使用了 Redis 的 ZSet 数据结构实现关注列表和被关注列表，将当前时间做为权重，关注时将数据存入 Redis 中，取关时将 Redis 中的数据删除。</li><li>点赞功能使用了 Redis 的 Set 和 String 数据结构分别存储实体的赞和用户的赞，实现实时获取点赞状态和数量。</li></ul><blockquote><p>Redis 中的事务是细粒度的，当需要进行增加或删除操作时将事务打开，完成后提交事务。</p></blockquote><p>统计网站 UV 使用了 Redis 的高级数据类型 HyperLogLog，其中日期做 key、IP 做 value 将指定的 IP 计入UV，实现了统计指定日期范围内的 UV。</p><p>统计网站 DAU 使用了 Redis 的高级数据类型 Bitmap，其中日期做 key、userId 做 value 将指定的 用户 计入UV，通过 OR 运算实现了统计指定日期范围内的 DAU。</p><p>使用 Redis 存储了用户的登录凭证，解决了分布式环境下的 Session 的共享。</p><hr><h4 id="Kafka-使用场景"><a href="#Kafka-使用场景" class="headerlink" title="Kafka 使用场景"></a>Kafka 使用场景</h4><p>当用户进行评论、点赞、关注，触发相应事件，发送到指定主题，事件消费者监听主题，消费消息发送站内通知。</p><p>当用户进行发帖和删帖时，发送异步消息，事件消费者监听到消息后，处理事件，包括检验格式、记录日志、对 Elasticsearch 数据库中的数据进行增删。</p><p>当用户进行分享时，发送异步消息，将上传文件与分享功能解耦，实现异步生成长图。</p><hr><h4 id="Elasticsearch-分布式搜索引擎使用场景"><a href="#Elasticsearch-分布式搜索引擎使用场景" class="headerlink" title="Elasticsearch 分布式搜索引擎使用场景"></a>Elasticsearch 分布式搜索引擎使用场景</h4><p>对帖子全文搜索 使用 Elasticsearch，对帖子进行了保存，搜索时根据关键字对帖子的标题和内容检索，并设置了排序规则和高亮显示匹配到的关键词。</p><hr><h4 id="多线程与定时任务使用场景"><a href="#多线程与定时任务使用场景" class="headerlink" title="多线程与定时任务使用场景"></a>多线程与定时任务使用场景</h4><h5 id="ThreadLocal实现线程隔离"><a href="#ThreadLocal实现线程隔离" class="headerlink" title="ThreadLocal实现线程隔离"></a>ThreadLocal实现线程隔离</h5><p>为什么用 ThreadLocal，每个浏览器访问服务器时，服务器会创建独立的线程进行处理请求，服务器处于多线程的环境，存储用户信息时需要考虑多线程的情况，为了防止并发时产生冲突，将用户信息存入 ThreadLocal 实现线程隔离。</p><h5 id="Quartz-分布式定时任务框架"><a href="#Quartz-分布式定时任务框架" class="headerlink" title="Quartz 分布式定时任务框架"></a>Quartz 分布式定时任务框架</h5><p>使用 Quartz 做定时任务的原因，防止在分布式环境下，不同的服务器做同样的任务产生冲突，而 Quartz 是分布式定时任务框架，数据存储在数据库中，可以实现分布式环境下的定时任务。</p><p>业务中使用 Quartz 定时刷新帖子分数，用户后续热度排名。</p><h5 id="本地定时任务-Spring-定时任务"><a href="#本地定时任务-Spring-定时任务" class="headerlink" title="本地定时任务 Spring 定时任务"></a>本地定时任务 Spring 定时任务</h5><p>业务中向云服务器上传图片采用了 <strong>ThreadPoolTaskScheduler</strong>，启用定时器,监视该图片，一旦生成了，则上传至云服务器。</p><h4 id="Spring-AOP-和-ControllerAdvice-使用场景"><a href="#Spring-AOP-和-ControllerAdvice-使用场景" class="headerlink" title="Spring AOP 和 ControllerAdvice 使用场景"></a>Spring AOP 和 ControllerAdvice 使用场景</h4><p>ControllerAdvice 实现全局异常处理。</p><p>Spring AOP 实现统一记录日志。</p><h4 id="Spring-事务使用场景"><a href="#Spring-事务使用场景" class="headerlink" title="Spring 事务使用场景"></a>Spring 事务使用场景</h4><p>对帖子评论时，需要同步更新帖子的评论数据量，设计到两个实体：评论和帖子，修改了两次数据库，先添加评论，后更新帖子的评论数量。</p><p>隔离级别选用 *<em>READ_COMMITTED *</em>解决第二类丢失更新、不可重复读以及幻读。</p><p>事务传播行为采用 <strong>REQUIRED</strong> 支持当前事务(外部事务),如果不存在则创建新事务。</p><h4 id="数据结构与算法"><a href="#数据结构与算法" class="headerlink" title="数据结构与算法"></a>数据结构与算法</h4><p>利用 Trie 实现了发帖、评论时对敏感词过滤。</p><p>利用 StackOverflow 的问答排名算法，计算帖子分数，实现帖子热门排名。</p><p><img src="https://www.biaodianfu.com/wp-content/uploads/2012/07/formula.png" alt="img"></p><h3 id="项目部署图"><a href="#项目部署图" class="headerlink" title="项目部署图"></a>项目部署图</h3><figure class="image-bubble">                <div class="img-lightbox">                    <div class="overlay"></div>                    <img src="https://s2.ax1x.com/2020/02/17/3iUtZ6.png" alt="3iUtZ6.png" title="">                </div>                <div class="image-caption">3iUtZ6.png</div>            </figure>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h1 id=&quot;DeltaPub-社区项目&quot;&gt;&lt;a href=&quot;#DeltaPub-社区项目&quot; class=&quot;headerlink&quot; title=&quot;DeltaPub 社区项目&quot;&gt;&lt;/a&gt;DeltaPub 社区项目&lt;/h1&gt;&lt;h3 id=&quot;本文主要关注用哪些技术解决了哪些问题，整理
+      
+    
+    </summary>
+    
+    
+      <category term="项目" scheme="https://izshun.github.io/categories/%E9%A1%B9%E7%9B%AE/"/>
+    
+    
+      <category term="项目" scheme="https://izshun.github.io/tags/%E9%A1%B9%E7%9B%AE/"/>
+    
+  </entry>
   
   <entry>
     <title>基于 Trie 实现敏感词过滤</title>
